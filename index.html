@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>회나무로 13나길 길제</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0B0A08; --fg:#CFC9BC; --dim:#736E62; --hair:#2A2722;
+  --red:#D8362A;
+  --paper:#F3EEE3; --ink:#1A1713; --pline:#C9C2B2;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  background:var(--bg); color:var(--fg);
+  font-family:'Pretendard Variable',Pretendard,-apple-system,sans-serif;
+  line-height:1.75; overflow-x:hidden; word-break:keep-all;
+  transition:background .9s ease, color .9s ease;
+}
+.lines{ font-size:16px; line-height:1.95; word-break:keep-all; }
+body.paper{ background:var(--paper); color:var(--ink); }
+body.paper .label{ color:#8A8272; }
+body.paper .hairline{ background:var(--pline); }
+
+#glitchCanvas{ position:fixed; inset:0; z-index:0; opacity:0; transition:opacity 1.2s ease; pointer-events:none; }
+#glitchCanvas.on{ opacity:.16; }
+#app{ position:relative; z-index:1; }
+#app.tear{ animation:tearfx .55s steps(2,end) 1; }
+@keyframes tearfx{
+  0%{ transform:none; filter:none; }
+  15%{ transform:translateX(-7px) skewX(1.5deg); filter:invert(.92); }
+  30%{ transform:translateX(6px); filter:none; }
+  45%{ transform:translateY(-3px); filter:invert(.92); }
+  60%{ transform:none; filter:none; }
+  100%{ transform:none; filter:none; }
+}
+
+.screen{ display:none; min-height:100dvh; padding:40px 26px 48px; max-width:520px; margin:0 auto; position:relative; }
+.screen.on{ display:block; animation:appear .7s ease both; }
+.screen.center{ display:none; }
+.screen.center.on{ display:flex; align-items:center; justify-content:center; text-align:center; }
+@keyframes appear{ from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none} }
+
+.label{ font-size:11px; letter-spacing:.34em; color:var(--dim); font-weight:600; text-transform:uppercase; }
+.hairline{ height:1px; background:var(--hair); border:0; margin:16px 0; }
+h1.big{
+  font-weight:800; font-size:34px; line-height:1.28; letter-spacing:-.015em;
+  margin:16px 0 8px; word-break:keep-all;
+}
+.sub{ font-size:13px; color:var(--dim); letter-spacing:.02em; }
+.body-txt{ font-size:15px; margin:20px 0; word-break:keep-all; font-weight:400; }
+.body-txt p{ margin-bottom:13px; }
+.body-txt b{ font-weight:700; color:inherit; }
+.box{
+  font-size:13.5px; border:1px solid var(--hair); padding:15px 16px; margin:18px 0;
+  word-break:keep-all; line-height:1.85; color:var(--fg); text-align:center;
+}
+body.paper .box{ border-color:var(--pline); color:var(--ink); }
+.caution{ font-size:12px; color:var(--dim); word-break:keep-all; }
+.timeline{ font-size:12.5px; color:var(--dim); letter-spacing:.04em; margin:12px 0 2px; }
+
+button.btn{
+  display:block; width:100%; margin:12px 0 0;
+  background:transparent; border:1px solid var(--fg); color:var(--fg);
+  font-family:inherit; font-weight:600; font-size:15px;
+  letter-spacing:.12em; padding:16px 10px; cursor:pointer;
+  transition:background .15s, color .15s;
+}
+button.btn:active{ background:var(--fg); color:var(--bg); }
+body.paper button.btn{ border-color:var(--ink); color:var(--ink); }
+body.paper button.btn:active{ background:var(--ink); color:var(--paper); }
+button.btn.red{ border-color:var(--red); color:var(--red); }
+label.demo-toggle{ display:flex; gap:8px; align-items:center; justify-content:center; font-size:12px; color:var(--dim); margin-top:18px; letter-spacing:.06em; }
+input.name-input{
+  width:100%; border:1px solid var(--hair); background:transparent; color:var(--fg);
+  font-family:inherit; font-size:16px; padding:13px; text-align:center; margin-top:8px; letter-spacing:.06em;
+}
+input.name-input::placeholder{ color:var(--dim); }
+
+/* 행보 */
+#walk .w-inner{ max-width:380px; margin:0 auto; }
+.w-rule{
+  font-weight:800; font-size:27px; line-height:1.55; letter-spacing:-.01em;
+  word-break:keep-all; white-space:pre-line; min-height:3.1em;
+}
+.w-note{ font-size:14px; color:var(--dim); margin-top:24px; word-break:keep-all; }
+.w-sub{ font-size:11px; letter-spacing:.3em; color:var(--dim); margin-top:38px; }
+.w-dots{ font-size:20px; letter-spacing:.5em; margin-top:12px; min-height:28px; color:var(--red); }
+
+/* 거리 화면 */
+.round-head{ margin-bottom:4px; }
+.round-no{ font-weight:800; font-size:24px; letter-spacing:-.01em; }
+.round-why{ font-size:13px; color:var(--dim); margin-top:4px; word-break:keep-all; }
+.walk-hint{ font-size:12px; color:var(--dim); margin-top:10px; word-break:keep-all; }
+
+.task{ border:1px solid var(--hair); padding:16px 16px 14px; margin:13px 0; position:relative; }
+.task .t-verb{
+  display:inline-block; font-size:10.5px; letter-spacing:.28em; color:var(--red);
+  font-weight:700; margin-bottom:8px;
+}
+.task .t-body{ font-size:17px; font-weight:700; word-break:keep-all; line-height:1.55; }
+.task .t-hint{ font-size:12.5px; color:var(--dim); margin-top:5px; word-break:keep-all; }
+.task button.t-act{
+  margin-top:12px; width:100%; border:1px solid var(--fg); background:transparent; color:var(--fg);
+  padding:12px; font-size:14px; font-family:inherit; font-weight:600; letter-spacing:.12em; cursor:pointer;
+}
+.task.done{ border-color:var(--fg); }
+.task.done button.t-act{ background:var(--fg); color:var(--bg); }
+.task img.thumb{ width:100%; margin-top:12px; border:1px solid var(--fg); display:block; }
+.task .mark{ position:absolute; right:12px; top:12px; font-size:11px; letter-spacing:.2em; color:var(--red); font-weight:800; display:none; }
+.task.done .mark{ display:block; }
+
+.wishline{ font-size:13px; color:var(--red); margin-top:14px; letter-spacing:.02em; }
+
+.permit{ margin-top:28px; }
+.permit .p-label{ font-size:10.5px; letter-spacing:.3em; color:var(--dim); display:flex; justify-content:space-between; }
+.p-track{ height:2px; background:var(--hair); margin-top:8px; }
+.p-fill{ height:100%; width:100%; background:var(--red); transition:width 1s linear; }
+
+/* 도착 오버레이 */
+.overlay{
+  position:fixed; inset:0; background:var(--bg); z-index:40;
+  display:none; align-items:center; justify-content:center; text-align:center; padding:30px;
+}
+.overlay.on{ display:flex; animation:appear .4s ease both; }
+.overlay .o-hanja{ font-weight:800; font-size:56px; letter-spacing:.08em; color:var(--red); }
+.overlay .o-label{ font-size:11px; letter-spacing:.34em; color:var(--dim); margin-top:6px; }
+.overlay .o-inst{ font-size:18px; font-weight:700; margin-top:22px; word-break:keep-all; max-width:340px; min-height:2.8em; white-space:pre-line; }
+
+/* 축원 */
+.d-inner{ max-width:340px; margin:0 auto; }
+.ask-q{ font-size:20px; font-weight:800; word-break:keep-all; min-height:3em; line-height:1.6; }
+
+/* 재계 */
+#threshold .count{ font-weight:800; font-size:60px; margin-top:26px; color:var(--red); }
+.th-text{ font-size:19px; font-weight:700; min-height:1.6em; }
+
+/* 축문 (종이) */
+.chukmun-wrap{ position:relative; }
+.chukmun-glow{
+  position:absolute; inset:-40px -20px; z-index:-1; pointer-events:none;
+  background:radial-gradient(ellipse at 50% 30%, rgba(216,54,42,.14), transparent 65%);
+}
+.chukmun{
+  border:1px solid var(--ink); margin:18px 0; background:var(--paper);
+  font-family:'Nanum Myeongjo',serif; font-size:17px; word-break:keep-all;
+  writing-mode:vertical-rl; text-orientation:mixed;
+  height:62vh; max-height:520px; overflow-x:auto; overflow-y:hidden;
+  padding:26px 22px; line-height:2.5;
+  animation:appear 1.4s ease both;
+}
+.chukmun .cm-head{ font-weight:800; letter-spacing:.5em; font-size:14px; margin-left:14px; }
+.chukmun .cm-tail{ margin-right:14px; font-weight:800; }
+.chukmun-scroll-hint{ font-size:11px; letter-spacing:.2em; color:#8A8272; text-align:center; margin-top:6px; }
+.chukmun b{ color:var(--red); }
+
+.gallery{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:20px 0; }
+.gallery figure{ margin:0; }
+.gallery img{ width:100%; aspect-ratio:3/4; object-fit:cover; border:1px solid var(--ink); display:block; }
+.gallery figcaption{ font-size:9.5px; letter-spacing:.06em; color:#8A8272; text-align:center; margin-top:3px; }
+.footnote{ font-size:12px; color:#8A8272; text-align:center; margin-top:40px; letter-spacing:.04em; line-height:2; }
+
+@media (prefers-reduced-motion: reduce){ *{animation:none !important; transition:none !important} #glitchCanvas{display:none} }
+</style>
+</head>
+<body>
+<canvas id="glitchCanvas"></canvas>
+<div id="app">
+
+<!-- ═══════════ 표지 1 · 제목 ═══════════ -->
+<section class="screen center on" id="c1">
+  <div class="d-inner">
+    <div class="label">路祭</div>
+    <h1 class="big" style="margin-top:22px">회나무로 13나길<br>길제</h1>
+    <div class="sub">열일곱 해 만의 약식 당제</div>
+    <p class="lines" style="margin-top:36px">이 길의 신은<br>열일곱 해째 제사를 받지 못했다.</p>
+    <button class="btn" id="toC2">다음</button>
+  </div>
+</section>
+
+<!-- ═══════════ 표지 2 · 내력 ═══════════ -->
+<section class="screen center" id="c2">
+  <div class="d-inner">
+    <div class="label">내력</div>
+    <p class="lines" style="margin-top:28px">
+      이태원 언덕의 부군당은<br>1619년부터 마을신을 모셔 왔다.<br><br>
+      부군당굿은<br>2009년을 마지막으로 멈추었다.<br><br>
+      이 게임은 그 빈 제사를 대신하는<br><b>15분의 약식 길제</b>다.<br><br>
+      <b>당신은 오늘의 임시 제관이다.</b>
+    </p>
+    <button class="btn" id="toC3">다음</button>
+  </div>
+</section>
+
+<!-- ═══════════ 표지 3 · 진행 ═══════════ -->
+<section class="screen center" id="c3">
+  <div class="d-inner">
+    <div class="label">진행</div>
+    <p class="lines" style="margin-top:26px">
+      제는 세 거리로 이어진다.<br><br>
+      상한 곳을 씻는 <b>부정거리</b><br>
+      신의 길을 여는 <b>청신거리</b><br>
+      고운 것을 올리는 <b>봉납거리</b><br><br>
+      세 거리가 끝나면 <b>축문</b>이 완성되고<br>낭독으로 제는 끝난다.
+    </p>
+    <div class="box">
+      혼자 또는 여럿, 각자의 폰으로<br>
+      약 15분 · <b>이어폰 필수</b><br><br>
+      <b>방울</b>이 울리면 멈춘다.<br>그 자리가 제터다.<br>
+      <b>징</b>이 울리면 한 거리가 끝난 것이다.<br>
+      목소리가 들리면,<br>알아들으려 하지 말 것.
+    </div>
+    <p class="caution">제보다 안전이 먼저다.<br>차량과 행인을 항상 살필 것.</p>
+    <div class="timeline" id="clockLine"></div>
+    <button class="btn" id="btnHere">회나무로 13나길에서 지낸다</button>
+    <button class="btn" id="btnFar">다른 길에서 지낸다 (망제)</button>
+    <p class="caution" style="margin-top:10px">망제: 성소에 가지 못할 때, 그 방향을<br>바라보고 지내는 실제 예법이다.</p>
+  </div>
+</section>
+
+<!-- ═══════════ 제관 등록 ═══════════ -->
+<section class="screen" id="ready">
+  <div class="label">제관 등록</div>
+  <hr class="hairline">
+  <h1 class="big" style="font-size:27px">임시 제관</h1>
+  <p class="body-txt" style="font-size:14px; text-align:center">축문에 올릴 이름을 적을 것.<br>비워 두면 「지나는 자」로 기록된다.</p>
+  <input class="name-input" id="nameInput" maxlength="12" placeholder="이름 (선택)">
+  <div class="box">
+    <b>여럿이 지낼 때</b><br>한 사람이 "하나, 둘, 셋"을 외치고 '셋'에 전원 동시에 개시할 것. 거리마다 흩어져 각자 지내고, 마지막 낭독은 모여서 함께 한다. 여럿일 때 조기 종결은 쓰지 말 것. 징을 함께 기다린다.
+  </div>
+  <button class="btn red" id="btnStart" style="padding:20px 10px; font-size:16px; letter-spacing:.3em">제 를 올 린 다</button>
+</section>
+
+<!-- ═══════════ 재계 ═══════════ -->
+<section class="screen center" id="threshold">
+  <div class="d-inner">
+    <div class="label" style="margin-bottom:18px">재계 齋戒</div>
+    <p class="th-text" id="thText"></p>
+    <div class="count" id="thCount"></div>
+  </div>
+</section>
+
+<!-- ═══════════ 행보 ═══════════ -->
+<section class="screen center" id="walk">
+  <div class="w-inner">
+    <div class="label" id="wLabel"></div>
+    <div class="w-rule" id="wRule" style="margin-top:20px"></div>
+    <div class="w-note" id="wNote"></div>
+    <div class="w-sub">방울이 울리면, 그 자리가 제터다</div>
+    <div class="w-dots" id="wDots"></div>
+  </div>
+</section>
+
+<!-- ═══════════ 도착 ═══════════ -->
+<div class="overlay" id="arriveOverlay">
+  <div>
+    <div class="o-hanja" id="arriveHanja"></div>
+    <div class="o-label">제터 도착</div>
+    <div class="o-inst" id="arriveInst"></div>
+  </div>
+</div>
+
+<!-- ═══════════ 거리 ═══════════ -->
+<section class="screen" id="round">
+  <div class="round-head">
+    <div class="label" id="roundGazette"></div>
+    <hr class="hairline">
+    <div class="round-no" id="roundNo"></div>
+    <div class="round-why" id="roundWhy"></div>
+    <div class="walk-hint">지금 선 곳 반경 열 걸음 안에서 · 시간 내 행할 것</div>
+  </div>
+  <div id="articles"></div>
+  <div class="permit">
+    <div class="p-label"><span>이 거리의 남은 시간</span><span id="pTime"></span></div>
+    <div class="p-track"><div class="p-fill" id="pFill"></div></div>
+  </div>
+  <button class="btn" id="btnEarly" style="display:none">이 거리를 마친다</button>
+</section>
+
+<!-- ═══════════ 축원 ═══════════ -->
+<section class="screen center" id="ask">
+  <div class="d-inner">
+    <div class="label" style="margin-bottom:20px" id="askLabel"></div>
+    <p class="ask-q" id="askQ"></p>
+    <button class="btn" id="askA"></button>
+    <button class="btn" id="askB"></button>
+  </div>
+</section>
+
+<!-- ═══════════ 축문 (종이 반전) ═══════════ -->
+<section class="screen" id="chukmunScreen">
+  <div class="label">세 거리가 끝났다 · 축문 완성</div>
+  <div class="chukmun-wrap">
+    <div class="chukmun-glow"></div>
+    <div class="chukmun" id="chukmunBody"></div>
+  <div class="chukmun-scroll-hint">→ 오른쪽부터, 옆으로 넘기며 읽는다</div>
+  </div>
+  <div class="box" id="readInst"></div>
+  <button class="btn" id="btnRead">낭독을 마쳤다</button>
+</section>
+
+<!-- ═══════════ 제사상 ═══════════ -->
+<section class="screen" id="end">
+  <div class="label">제사 종료</div>
+  <hr class="hairline">
+  <h1 class="big" style="font-size:26px">십칠 년 만의<br>제가 끝났다</h1>
+  <p class="body-txt" style="font-size:14px" id="endLine"></p>
+  <hr class="hairline">
+  <div class="label" style="margin-top:16px">오늘의 제사상 · 서로에게 보일 것</div>
+  <div class="gallery" id="gallery"></div>
+  <div class="footnote">
+    이태원부군당은 실재한다. 1619년 창건, 1917년 이건.<br>
+    부군당굿은 2009년 이후 멈추어 있다.<br>
+    이 길을 따라 남산의 물이 만초천 지류로 흘렀고, 그 물길은 지금도 길 밑에 있다.
+  </div>
+</section>
+
+</div><!-- /#app -->
+<input type="file" accept="image/*" capture="environment" id="camInput" hidden>
+
+<script>
+/* ═══════════════════════════════════════════════════
+   CONFIG — 문구·시간은 전부 여기서
+   ═══════════════════════════════════════════════════ */
+const CONFIG = {
+  WALK_SEC: 70,  STATION_SEC: 110,
+  DEMO_WALK_SEC: 18, DEMO_STATION_SEC: 45,
+
+  GEORI: [
+    { name:"부정거리", hanja:"不淨", why:"제를 올리기 전, 길의 상한 곳부터 씻는다",
+      walkRule:"더 낡은 쪽으로 걸을 것.\n갈림길에서는, 금이 간 쪽.",
+      walkNote:"걷는 동안, 바닥의 금을 밟지 말 것. 앓는 길이다.",
+      arrive:"멈출 것.\n여기서 씻는다.\n반경 열 걸음이 제터다.",
+      tasks:[
+        { verb:"찾아 확인 · 촬영", body:"금 가거나 깨진 것", hint:"부정은 확인해야 씻긴다", kind:"photo", label:"부정 一" },
+        { verb:"찾아 확인 · 촬영", body:"버려졌으나, 아직 치워지지 않은 것", hint:"", kind:"photo", label:"부정 二" },
+        { verb:"씻김", body:"방금 찍은 둘 중 하나 위로, 손바람을 세 번 쓸 것", hint:"닿지 말고, 바람으로만", kind:"do", btn:"씻었다" },
+      ],
+      ask:{ label:"첫 번째 축원", q:"씻은 자리에 무엇을 빌겠는가?", a:"아물기를", b:"잊히지 않기를" } },
+    { name:"청신거리", hanja:"請神", why:"신이 다닐 길을 연다. 신은 물길과 틈으로 다닌다",
+      walkRule:"물이 흐를 방향으로 걸을 것.\n내리막을 따를 것.\n없다면, 바람을 따를 것.",
+      walkNote:"이 골짜기의 물은 만초천의 지류가 되어 흘렀다. 지금도 길 밑에 있다.",
+      arrive:"멈출 것.\n여기서 길을 연다.\n반경 열 걸음이 제터다.",
+      tasks:[
+        { verb:"찾아 확인 · 촬영", body:"물이 흐르는, 혹은 흘렀던 자취", hint:"배수구, 물자국, 이끼. 강의 지류다", kind:"photo", label:"물길" },
+        { verb:"찾아 확인 · 촬영", body:"닫힌 것 곁의, 열린 틈", hint:"문틈, 담 틈, 창 틈", kind:"photo", label:"틈" },
+        { verb:"길 내기", body:"방금 찍은 둘 중 하나 앞에서, 세 걸음 물러날 것", hint:"다닐 자리를 비워 두는 것이다", kind:"do", btn:"물러났다" },
+      ],
+      ask:{ label:"두 번째 축원", q:"연 길로 무엇이 다니기를 비는가?", a:"바람과 물이", b:"오가는 사람들이" } },
+    { name:"봉납거리", hanja:"奉納", why:"길의 가장 고운 것을 골라, 제물로 올린다",
+      walkRule:"가장 밝은 쪽으로 걸을 것.\n왔던 길을 되짚어도 좋다.\n두 번 보는 것도 예다.",
+      walkNote:"걷는 동안, 올릴 만한 고운 것을 눈여겨 둘 것.",
+      arrive:"멈출 것.\n여기서 올린다.\n반경 열 걸음이 제터다.",
+      tasks:[
+        { verb:"제물 · 촬영", body:"이 길에서 가장 오래 살아남은 것", hint:"나무, 글자, 돌. 신과 동갑에 가까운 것", kind:"photo", label:"제물 一" },
+        { verb:"제물 · 촬영", body:"지금 이 순간에만 있는 것", hint:"빛, 그림자, 지나가는 것. 오늘의 몫", kind:"photo", label:"제물 二" },
+        { verb:"헌례", body:"방금 찍은 둘 중, 더 고운 쪽에 목례할 것", hint:"목격되어도 해명하지 말 것", kind:"do", btn:"올렸다" },
+      ],
+      ask:{ label:"마지막 축원", q:"이 길이 어떤 길이기를 비는가?", a:"오래 남기를", b:"계속 변하기를" } },
+  ],
+  GAZETTE:["홀기 제一장 · 수신 양호","홀기 제二장 · 잡음 섞임","홀기 제三장 · 마지막"],
+};
+
+/* 외부 사운드 파일 — 있으면 자동 사용, 없으면 합성음 폴백
+   폴더 구조:  index.html 옆에  sound/geori1.mp3, geori2.mp3, geori3.mp3, bell.mp3, gong.mp3 */
+const EXT_FILES={ amb:['sound/geori1.mp3','sound/geori2.mp3','sound/geori3.mp3'], bell:'sound/bell.mp3', gong:'sound/gong.mp3' };
+
+/* ═══════════ 상태 ═══════════ */
+let far=false, demo=false, geoIdx=0, timer=null, roundStart=0;
+let photos=[], wishes=[], pendingPhotoCb=null;
+const $=id=>document.getElementById(id);
+const show=id=>{ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); $(id).classList.add('on'); };
+const vibrate=p=>{ try{ navigator.vibrate&&navigator.vibrate(p); }catch(e){} };
+
+/* ═══════════ 스크램블 텍스트 (해독 연출) ═══════════ */
+const SCRAMBLE='不淨請神奉納回木路守堂水門風影目耳川井巫祭壇香燭';
+let scrambleIvs=[];
+function scrambleIn(el, text, speed=26){
+  scrambleIvs.forEach(clearInterval);
+  const chars=[...text];
+  let revealed=0;
+  const iv=setInterval(()=>{
+    revealed+=1+(chars.length>40?1:0);
+    el.textContent=chars.map((c,i)=>{
+      if(c==='\n'||c===' ') return c;
+      return i<revealed?c:SCRAMBLE[Math.floor(Math.random()*SCRAMBLE.length)];
+    }).join('');
+    if(revealed>=chars.length){ clearInterval(iv); el.textContent=text; }
+  },speed);
+  scrambleIvs.push(iv);
+}
+
+/* ═══════════ 글리치 캔버스 ═══════════ */
+const GC=$('glitchCanvas'), gctx=GC.getContext('2d');
+const GCHARS=(SCRAMBLE+'ㄱㄴㄷㄹㅁㅂㅅㅇㅈㅊㅋㅌㅍㅎ').split('');
+const GCOLORS=['#241f19','#2e2620','#3a1713','#1c1815'];
+let gGrid={c:0,r:0}, gCells=[], gAnim=null, gLast=0;
+function gResize(){
+  const dpr=window.devicePixelRatio||1;
+  GC.width=innerWidth*dpr; GC.height=innerHeight*dpr;
+  GC.style.width=innerWidth+'px'; GC.style.height=innerHeight+'px';
+  gctx.setTransform(dpr,0,0,dpr,0,0);
+  gGrid={c:Math.ceil(innerWidth/22), r:Math.ceil(innerHeight/26)};
+  gCells=Array.from({length:gGrid.c*gGrid.r},()=>({ch:GCHARS[Math.random()*GCHARS.length|0], col:GCOLORS[Math.random()*GCOLORS.length|0]}));
+}
+function gDraw(){
+  gctx.clearRect(0,0,innerWidth,innerHeight);
+  gctx.font='15px Pretendard, monospace'; gctx.textBaseline='top';
+  gCells.forEach((cell,i)=>{
+    gctx.fillStyle=cell.col;
+    gctx.fillText(cell.ch,(i%gGrid.c)*22,((i/gGrid.c)|0)*26);
+  });
+}
+function gTick(t){
+  gAnim=requestAnimationFrame(gTick);
+  if(t-gLast<90) return; gLast=t;
+  for(let k=0;k<Math.max(1,gCells.length*0.03|0);k++){
+    const i=Math.random()*gCells.length|0;
+    gCells[i]={ch:GCHARS[Math.random()*GCHARS.length|0], col:GCOLORS[Math.random()*GCOLORS.length|0]};
+  }
+  gDraw();
+}
+function glitchOn(){ gResize(); GC.classList.add('on'); if(!gAnim) gAnim=requestAnimationFrame(gTick); }
+function glitchOff(){ GC.classList.remove('on'); if(gAnim){ cancelAnimationFrame(gAnim); gAnim=null; } }
+addEventListener('resize',()=>{ if(GC.classList.contains('on')) gResize(); });
+
+/* 징 = 화면 찢김 */
+function tear(){ const a=$('app'); a.classList.remove('tear'); void a.offsetWidth; a.classList.add('tear'); }
+
+/* ═══════════ 소리 — 외부 파일 우선, 합성 폴백 ═══════════ */
+let AC=null, master=null, ambient={nodes:[],ints:[],audio:null};
+const ext={amb:[null,null,null], bell:null, gong:null};
+function tryLoad(src, assign){
+  const a=new Audio(); a.preload='auto'; a.src=src;
+  a.addEventListener('canplaythrough',()=>assign(a),{once:true});
+  a.addEventListener('error',()=>{},{once:true});
+}
+EXT_FILES.amb.forEach((s,i)=>tryLoad(s,a=>ext.amb[i]=a));
+tryLoad(EXT_FILES.bell,a=>ext.bell=a);
+tryLoad(EXT_FILES.gong,a=>ext.gong=a);
+function playExt(a,vol=1){ try{ const c=a.cloneNode(); c.volume=vol; c.play(); }catch(e){} }
+
+function audioInit(){
+  if(AC) return;
+  AC=new (window.AudioContext||window.webkitAudioContext)();
+  master=AC.createGain(); master.gain.value=0.75; master.connect(AC.destination);
+}
+function tone(freq,dur,{type='sine',gain=0.2,bend=0}={}){
+  const o=AC.createOscillator(), g=AC.createGain();
+  o.type=type; o.frequency.value=freq;
+  if(bend) o.frequency.exponentialRampToValueAtTime(Math.max(20,freq+bend), AC.currentTime+dur);
+  g.gain.setValueAtTime(gain, AC.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.0001, AC.currentTime+dur);
+  o.connect(g); g.connect(master); o.start(); o.stop(AC.currentTime+dur+0.05);
+}
+function noiseBurst(dur,{gain=0.15,freq=800,q=1}={}){
+  const len=Math.max(1,(AC.sampleRate*dur)|0), buf=AC.createBuffer(1,len,AC.sampleRate), d=buf.getChannelData(0);
+  for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*(1-i/len);
+  const src=AC.createBufferSource(); src.buffer=buf;
+  const f=AC.createBiquadFilter(); f.type='bandpass'; f.frequency.value=freq; f.Q.value=q;
+  const g=AC.createGain(); g.gain.value=gain;
+  src.connect(f); f.connect(g); g.connect(master); src.start();
+}
+function bellOne(){ if(ext.bell) return playExt(ext.bell,.8); tone(2600,.6,{type:'triangle',gain:.09}); tone(3900,.4,{gain:.045}); }
+function bell(){ if(ext.bell) return playExt(ext.bell,.9); for(let i=0;i<6;i++){ setTimeout(()=>{ tone(2500+Math.random()*1400,.5,{type:'triangle',gain:.07}); }, i*80);} }
+function bellTriple(){ bell(); setTimeout(bell,550); setTimeout(bell,1100); }
+function gong(){
+  tear();
+  if(ext.gong) return playExt(ext.gong,.9);
+  tone(97,5,{gain:.28,bend:-14}); tone(146,4.4,{gain:.14,bend:-10});
+  tone(291,3,{type:'triangle',gain:.05,bend:-20}); noiseBurst(.35,{gain:.08,freq:300,q:.7});
+}
+function whisperSyllable(){
+  const f=700+Math.random()*2200;
+  noiseBurst(0.08+Math.random()*0.14,{gain:0.02+Math.random()*0.014, freq:f, q:6});
+  if(Math.random()<.4) noiseBurst(0.05,{gain:0.011, freq:f*1.7, q:8});
+}
+function whisperPhrase(){
+  const n=3+Math.random()*4|0;
+  for(let i=0;i<n;i++) setTimeout(whisperSyllable, i*(100+Math.random()*90));
+}
+function fadeAudio(a,to,ms){
+  const from=a.volume, steps=20, dt=ms/steps; let i=0;
+  const iv=setInterval(()=>{ i++; a.volume=Math.max(0,Math.min(1,from+(to-from)*(i/steps)));
+    if(i>=steps){ clearInterval(iv); if(to===0){ try{a.pause();}catch(e){} } } },dt);
+  return iv;
+}
+function ambientStop(){
+  ambient.ints.forEach(clearInterval);
+  ambient.nodes.forEach(n=>{try{n.stop()}catch(e){}});
+  if(ambient.audio){ fadeAudio(ambient.audio,0,450); }
+  ambient={nodes:[],ints:[],audio:null};
+}
+function ambientBase(r){
+  if(ext.amb[r]){ const a=ext.amb[r]; a.loop=true; a.volume=0; a.currentTime=0; a.play().catch(()=>{}); ambient.audio=a; fadeAudio(a,0.6,1500); return true; }
+  const drone=AC.createOscillator(), dg=AC.createGain();
+  drone.type='sine'; drone.frequency.value=52+r*3;
+  dg.gain.value=0.022; drone.connect(dg); dg.connect(master); drone.start();
+  ambient.nodes.push(drone);
+  return false;
+}
+function ambientWalk(r){
+  ambientStop();
+  const hasExt=ambientBase(r);
+  whisperPhrase();
+  ambient.ints.push(setInterval(()=>{ if(Math.random()<.65) whisperPhrase(); }, 4600));
+  if(!hasExt && r===2){ let b=0; ambient.ints.push(setInterval(()=>{ noiseBurst(.1,{gain:.06,freq:220,q:1.4}); b++; },900)); }
+}
+function ambientStation(r){
+  ambientStop();
+  const hasExt=ambientBase(r);
+  if(!hasExt){
+    if(r>=1){ let b=0; ambient.ints.push(setInterval(()=>{ noiseBurst(b%4===0?.12:.07,{gain:b%4===0?.07:.035, freq:b%4===0?220:900, q:1.4}); b++; }, r===2?700:1000)); }
+  }
+  ambient.ints.push(setInterval(()=>{ if(Math.random()<.18) whisperPhrase(); }, 9000));
+}
+
+/* ═══════════ 카메라 ═══════════ */
+$('camInput').addEventListener('change', e=>{
+  const f=e.target.files&&e.target.files[0];
+  if(f&&pendingPhotoCb){ pendingPhotoCb(URL.createObjectURL(f)); }
+  pendingPhotoCb=null; e.target.value='';
+});
+function requestPhoto(cb){ pendingPhotoCb=cb; $('camInput').click(); }
+
+/* ═══════════ 표지 시계 ═══════════ */
+(function(){
+  const d=new Date(), h=d.getHours(), m=d.getMinutes();
+  $('clockLine').textContent=`현재 시각 ${h}시 ${String(m).padStart(2,'0')}분. 제를 올리기에 늦은 시각은 없다.`;
+})();
+
+/* ═══════════ 흐름 ═══════════ */
+function begin(isFar){
+  far=isFar; demo=new URLSearchParams(location.search).has('demo');
+  audioInit(); bellOne(); vibrate([30,40,30]);
+  show('ready');
+  try{ navigator.wakeLock&&navigator.wakeLock.request('screen'); }catch(e){}
+}
+$('toC2').onclick=()=>{ show('c2'); };
+$('toC3').onclick=()=>{ show('c3'); };
+$('btnHere').onclick=()=>begin(false);
+$('btnFar').onclick=()=>begin(true);
+$('btnStart').onclick=()=>{ threshold(); };
+
+function threshold(){
+  show('threshold'); glitchOn();
+  const secs=demo?4:10;
+  scrambleIn($('thText'),'이어폰을 확인할 것.');
+  $('thCount').textContent='';
+  tone(58,3,{gain:.04}); whisperPhrase();
+  setTimeout(()=>{ scrambleIn($('thText'),'눈을 감고, 몸을 고를 것.'); whisperPhrase(); },2000);
+  setTimeout(()=>{
+    scrambleIn($('thText'),'길의 소리를 들을 것.');
+    let c=secs; $('thCount').textContent=c;
+    const iv=setInterval(()=>{
+      c--; $('thCount').textContent=c>0?c:'';
+      if(c<=0){ clearInterval(iv); gong(); vibrate([0,150]); setTimeout(()=>startWalk(0),1600); }
+    },1000);
+  },4000);
+}
+
+function startWalk(r){
+  geoIdx=r;
+  const g=CONFIG.GEORI[r];
+  $('wLabel').textContent=`${g.name}로 가는 행보`;
+  show('walk'); glitchOn(); ambientWalk(r);
+  scrambleIn($('wRule'), g.walkRule, 30);
+  setTimeout(()=>{ $('wNote').textContent=g.walkNote; },1400);
+  $('wNote').textContent='';
+  bellOne(); vibrate([40,60,40]);
+  const total=demo?CONFIG.DEMO_WALK_SEC:CONFIG.WALK_SEC;
+  let e=0;
+  clearInterval(timer);
+  timer=setInterval(()=>{
+    e++;
+    $('wDots').textContent='·'.repeat((e%4)+1);
+    if(e>=total){ clearInterval(timer); arrive(r); }
+  },1000);
+}
+function arrive(r){
+  ambientStop();
+  const g=CONFIG.GEORI[r];
+  $('arriveHanja').textContent=g.hanja;
+  $('arriveOverlay').classList.add('on');
+  scrambleIn($('arriveInst'), g.arrive, 22);
+  bellTriple(); vibrate([60,80,60,80,60]);
+  setTimeout(()=>{ $('arriveOverlay').classList.remove('on'); glitchOff(); startStation(r); }, 4800);
+}
+
+function taskCard(t, r){
+  const d=document.createElement('div'); d.className='task';
+  d.innerHTML =
+    `<span class="mark">行</span>`+
+    `<span class="t-verb">${t.verb}</span>`+
+    `<div class="t-body">${t.body}</div>`+
+    (t.hint?`<div class="t-hint">${t.hint}</div>`:'')+
+    `<button class="t-act">${t.kind==='photo'?'촬영':t.btn}</button>`;
+  const btn=d.querySelector('.t-act');
+  if(t.kind==='photo'){
+    btn.onclick=()=>{
+      requestPhoto(url=>{
+        photos.push({url, label:`${CONFIG.GEORI[r].name} · ${t.label}`});
+        const img=document.createElement('img'); img.className='thumb'; img.src=url; img.alt=t.body;
+        btn.after(img); btn.textContent='행함 · 재촬영'; d.classList.add('done');
+        bellOne(); vibrate(40); checkComplete();
+      });
+    };
+  } else {
+    btn.onclick=()=>{
+      d.classList.toggle('done');
+      btn.textContent=d.classList.contains('done')?'✓ '+t.btn:t.btn;
+      if(d.classList.contains('done')){ bellOne(); vibrate(30); }
+      checkComplete();
+    };
+  }
+  return d;
+}
+function checkComplete(){
+  const done=document.querySelectorAll('#articles .task.done').length;
+  $('btnEarly').style.display = done>=3 ? 'block' : 'none';
+}
+$('btnEarly').onclick=()=>{ clearInterval(timer); $('btnEarly').style.display='none'; stationEnd(); };
+
+function startStation(r){
+  const g=CONFIG.GEORI[r];
+  $('roundNo').textContent=`${['一','二','三'][r]}거리 · ${g.name} ${g.hanja}`;
+  $('roundWhy').textContent=g.why;
+  $('roundGazette').textContent=CONFIG.GAZETTE[r];
+
+  const arts=$('articles'); arts.innerHTML='';
+  g.tasks.forEach(t=>arts.appendChild(taskCard(t,r)));
+  if(r>=1 && wishes[r-1]!==undefined){
+    const prev=CONFIG.GEORI[r-1].ask;
+    const s=document.createElement('div'); s.className='wishline';
+    s.textContent=`앞선 축원 · 「${wishes[r-1]===0?prev.a:prev.b}」`;
+    arts.appendChild(s);
+  }
+  $('btnEarly').style.display='none';
+
+  show('round'); ambientStation(r);
+  runStationTimer();
+}
+function runStationTimer(){
+  clearInterval(timer);
+  const total=demo?CONFIG.DEMO_STATION_SEC:CONFIG.STATION_SEC;
+  roundStart=Date.now();
+  timer=setInterval(()=>{
+    const elapsed=(Date.now()-roundStart)/1000|0;
+    const remain=Math.max(0,total-elapsed);
+    $('pFill').style.width=(remain/total*100)+'%';
+    $('pTime').textContent=`${remain/60|0}:${String(remain%60).padStart(2,'0')}`;
+    if(remain<=0){ clearInterval(timer); stationEnd(); }
+  },1000);
+}
+function stationEnd(){
+  ambientStop();
+  gong(); vibrate([0,300]);
+  setTimeout(()=>askWish(geoIdx), 1400);
+}
+
+function askWish(i){
+  const a=CONFIG.GEORI[i].ask;
+  $('askLabel').textContent=a.label;
+  $('askA').textContent=a.a; $('askB').textContent=a.b;
+  show('ask'); whisperPhrase();
+  scrambleIn($('askQ'), a.q, 24);
+  const answer=(v)=>{
+    wishes[i]=v; bellOne(); vibrate(40);
+    $('askQ').textContent='축원이 축문에 올랐다.'; $('askA').style.display='none'; $('askB').style.display='none';
+    setTimeout(()=>{
+      $('askA').style.display=''; $('askB').style.display='';
+      if(i===2){ composeChukmun(); } else { startWalk(i+1); }
+    },1900);
+  };
+  $('askA').onclick=()=>answer(0);
+  $('askB').onclick=()=>answer(1);
+}
+
+/* ---------- 축문 : 유일한 종이 화면 ---------- */
+function kNum(n){
+  const d=['','일','이','삼','사','오','육','칠','팔','구'];
+  if(n>=1000){ const t=(n/1000|0), r=n%1000;
+    return (t===1?'천':d[t]+'천')+(r? kNum(r):''); }
+  if(n>=100){ const h=(n/100|0), r=n%100;
+    return (h===1?'백':d[h]+'백')+(r? kNum(r):''); }
+  if(n>=10){ const s=(n/10|0), r=n%10;
+    return (s===1?'십':d[s]+'십')+(r? d[r]:''); }
+  return d[n];
+}
+function escapeHTML(value){
+  return value.replace(/[&<>"']/g, ch=>({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  })[ch]);
+}
+function composeChukmun(){
+  document.body.classList.add('paper');
+  glitchOff();
+  const d=new Date();
+  const name=escapeHTML(($('nameInput').value||'').trim()||'지나는 자');
+  const w=i=>{ const a=CONFIG.GEORI[i].ask; return wishes[i]===0?a.a:a.b; };
+  const where= far ? '먼 길 위에서 부군당을 바라' : '회나무로 13나길에서';
+  $('chukmunBody').innerHTML=
+    `<div class="cm-head">축 문</div>`+
+    `유세차 ${kNum(d.getFullYear())}년 ${kNum(d.getMonth()+1)}월 ${kNum(d.getDate())}일,<br>`+
+    `임시 제관 <b>${name}</b>,<br>${where} 삼가 고하나이다.<br><br>`+
+    `길의 상한 곳 둘을 씻었사오니,<br>그 자리 <b>${w(0)}</b> 빕니다.<br><br>`+
+    `막힌 곁의 틈과 물길을 열었사오니,<br>그리로 <b>${w(1)}</b> 다니기를 빕니다.<br><br>`+
+    `길의 고운 것 둘을 올리오니,<br>이 길이 <b>${w(2)}</b> 빕니다.<br><br>`+
+    `이천구년 뒤로 열일곱 해 만의 제이오니,<br>흠향하소서.<br><br>`+
+    `<span class="cm-tail">상향 尙饗</span>`;
+  $('readInst').innerHTML=`<b>낭독으로 제를 마친다.</b><br>축문은 옛 법대로 세로로 적혔다.<br><b>오른쪽 줄부터</b> 소리 내어 읽을 것.<br>${far?'이태원 부군당이 있을 방향을 어림하여 서서 읽는다.':'언덕 위 부군당 쪽을 향해 서서 읽는다.'}<br>크지 않아도 좋다. 들릴 만큼.<br>여럿이면, 모여서 함께 읽는다.`;
+  show('chukmunScreen');
+  bellTriple(); setTimeout(bellTriple,1700); vibrate([80,60,80,60,120]);
+}
+$('btnRead').onclick=()=>{
+  gong();
+  $('endLine').textContent='당신이 걸어서 쓴 축문이었다. 씻은 것, 연 것, 올린 것. 전부 이 길에서 오늘 처음으로 눈에 담긴 것들이다.';
+  const g=$('gallery'); g.innerHTML='';
+  if(photos.length===0){
+    g.innerHTML='<p style="grid-column:1/-1; font-size:12px; color:#8A8272; text-align:center">촬영물 없음. 눈에 담은 것을 말로 나눌 것.</p>';
+  } else {
+    photos.forEach(p=>{
+      const f=document.createElement('figure');
+      f.innerHTML=`<img src="${p.url}" alt=""><figcaption>${p.label}</figcaption>`;
+      g.appendChild(f);
+    });
+  }
+  show('end');
+};
+</script>
+</body>
+</html>
