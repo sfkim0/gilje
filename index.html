@@ -436,19 +436,63 @@ function tear(){ const a=$('app'); a.classList.remove('tear'); void a.offsetWidt
 let AC=null, master=null, ambient={nodes:[],ints:[],audio:null};
 const ext={amb:[null,null,null], bell:null, gong:null};
 function tryLoad(src, assign){
-  const a=new Audio(); a.preload='auto'; a.src=src;
-  a.addEventListener('canplaythrough',()=>assign(a),{once:true});
-  a.addEventListener('error',()=>{},{once:true});
+  const a=new Audio();
+  a.preload='auto';
+  a.playsInline=true;
+  a.src=src;
+  assign(a);
+  try{ a.load(); }catch(e){}
 }
 EXT_FILES.amb.forEach((s,i)=>tryLoad(s,a=>ext.amb[i]=a));
 tryLoad(EXT_FILES.bell,a=>ext.bell=a);
 tryLoad(EXT_FILES.gong,a=>ext.gong=a);
-function playExt(a,vol=1){ try{ const c=a.cloneNode(); c.volume=vol; c.play(); }catch(e){} }
+
+function playExt(a,vol=1,onFail){
+  try{
+    const c=a.cloneNode(true);
+    c.volume=vol;
+    c.currentTime=0;
+    const p=c.play();
+    if(p&&p.catch) p.catch(()=>{ if(onFail) onFail(); });
+    return c;
+  }catch(e){
+    if(onFail) onFail();
+    return null;
+  }
+}
 
 function audioInit(){
-  if(AC) return;
-  AC=new (window.AudioContext||window.webkitAudioContext)();
-  master=AC.createGain(); master.gain.value=0.75; master.connect(AC.destination);
+  if(!AC){
+    AC=new (window.AudioContext||window.webkitAudioContext)();
+    master=AC.createGain(); master.gain.value=0.75; master.connect(AC.destination);
+  }
+  if(AC.state==='suspended'){
+    const p=AC.resume();
+    if(p&&p.catch) p.catch(()=>{});
+  }
+}
+
+/* 모바일 브라우저는 사용자 터치 없이 시작된 오디오를 막을 수 있다.
+   첫 선택 버튼을 누를 때 모든 음원을 아주 작게 재생했다가 즉시 멈춰 활성화한다. */
+function unlockAudio(){
+  audioInit();
+  const list=[...ext.amb,ext.bell,ext.gong].filter(Boolean);
+  list.forEach(a=>{
+    try{
+      const oldVol=a.volume, oldLoop=a.loop;
+      a.loop=false;
+      a.volume=0.001;
+      a.currentTime=0;
+      const p=a.play();
+      const reset=()=>{
+        try{ a.pause(); a.currentTime=0; }catch(e){}
+        a.volume=oldVol;
+        a.loop=oldLoop;
+      };
+      if(p&&p.then) p.then(reset).catch(reset);
+      else reset();
+    }catch(e){}
+  });
 }
 function tone(freq,dur,{type='sine',gain=0.2,bend=0}={}){
   const o=AC.createOscillator(), g=AC.createGain();
@@ -466,14 +510,20 @@ function noiseBurst(dur,{gain=0.15,freq=800,q=1}={}){
   const g=AC.createGain(); g.gain.value=gain;
   src.connect(f); f.connect(g); g.connect(master); src.start();
 }
-function bellOne(){ if(ext.bell) return playExt(ext.bell,.8); tone(2600,.6,{type:'triangle',gain:.09}); tone(3900,.4,{gain:.045}); }
-function bell(){ if(ext.bell) return playExt(ext.bell,.9); for(let i=0;i<6;i++){ setTimeout(()=>{ tone(2500+Math.random()*1400,.5,{type:'triangle',gain:.07}); }, i*80);} }
-function bellTriple(){ bell(); setTimeout(bell,550); setTimeout(bell,1100); }
-function gong(){
-  tear();
-  if(ext.gong) return playExt(ext.gong,.9);
+function synthBellOne(){ tone(2600,.6,{type:'triangle',gain:.09}); tone(3900,.4,{gain:.045}); }
+function synthBell(){ for(let i=0;i<6;i++){ setTimeout(()=>{ tone(2500+Math.random()*1400,.5,{type:'triangle',gain:.07}); }, i*80); } }
+function synthGong(){
   tone(97,5,{gain:.28,bend:-14}); tone(146,4.4,{gain:.14,bend:-10});
   tone(291,3,{type:'triangle',gain:.05,bend:-20}); noiseBurst(.35,{gain:.08,freq:300,q:.7});
+}
+function bellOne(){ audioInit(); if(ext.bell) return playExt(ext.bell,.8,synthBellOne); synthBellOne(); }
+function bell(){ audioInit(); if(ext.bell) return playExt(ext.bell,.9,synthBell); synthBell(); }
+function bellTriple(){ bell(); setTimeout(bell,550); setTimeout(bell,1100); }
+function gong(){
+  audioInit();
+  tear();
+  if(ext.gong) return playExt(ext.gong,.9,synthGong);
+  synthGong();
 }
 function whisperSyllable(){
   const f=700+Math.random()*2200;
@@ -496,12 +546,37 @@ function ambientStop(){
   if(ambient.audio){ fadeAudio(ambient.audio,0,450); }
   ambient={nodes:[],ints:[],audio:null};
 }
-function ambientBase(r){
-  if(ext.amb[r]){ const a=ext.amb[r]; a.loop=true; a.volume=0; a.currentTime=0; a.play().catch(()=>{}); ambient.audio=a; fadeAudio(a,0.6,1500); return true; }
+function synthAmbientBase(r){
+  audioInit();
   const drone=AC.createOscillator(), dg=AC.createGain();
   drone.type='sine'; drone.frequency.value=52+r*3;
   dg.gain.value=0.022; drone.connect(dg); dg.connect(master); drone.start();
   ambient.nodes.push(drone);
+}
+function ambientBase(r){
+  audioInit();
+  if(ext.amb[r]){
+    const a=ext.amb[r];
+    a.loop=true; a.volume=0; a.currentTime=0;
+    ambient.audio=a;
+    try{
+      const p=a.play();
+      if(p&&p.then){
+        p.then(()=>fadeAudio(a,0.6,1500)).catch(()=>{
+          ambient.audio=null;
+          synthAmbientBase(r);
+        });
+      }else{
+        fadeAudio(a,0.6,1500);
+      }
+      return true;
+    }catch(e){
+      ambient.audio=null;
+      synthAmbientBase(r);
+      return false;
+    }
+  }
+  synthAmbientBase(r);
   return false;
 }
 function ambientWalk(r){
@@ -537,7 +612,7 @@ function requestPhoto(cb){ pendingPhotoCb=cb; $('camInput').click(); }
 /* ═══════════ 흐름 ═══════════ */
 function begin(isFar){
   far=isFar; demo=new URLSearchParams(location.search).has('demo');
-  audioInit(); bellOne(); vibrate([30,40,30]);
+  unlockAudio(); bellOne(); vibrate([30,40,30]);
   show('ready');
   try{ navigator.wakeLock&&navigator.wakeLock.request('screen'); }catch(e){}
 }
